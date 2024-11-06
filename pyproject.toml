@@ -9,7 +9,7 @@ authors = [
 ]
 keywords = ["cli", "ai", "generative-ai", "invokeai", "image", "training", "tool"]
 dynamic = ["version"]
-description = "CLI tool that easily allows you to manage the official InvokeAI releases."
+description = "nero-cli is a simple CLI tool that streamlines the process of downloading Official InvokeAI release from github and running it on your local machine. It is designed to be a simple allow you to quickly and easily pull the latest version, specify version, or rollback if you need to."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
