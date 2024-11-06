@@ -3,6 +3,7 @@ import argparse
 
 from .cli import nero
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Invoke Installer Script")
     parser.add_argument(
@@ -29,6 +30,11 @@ def main() -> None:
         action="store_true",
         help="Keep the downloaded file after installation",
     )
+    parser.add_argument(
+        "--list-versions",
+        action="store_true",
+        help="List available versions of InvokeAI",
+    )
     # parser.add_argument(
     #     "--use-pyenv",
     #     action="store_true",
@@ -48,10 +54,8 @@ def main() -> None:
         help="Only update the configuration file with the current or specified version",
     )
     args = parser.parse_args()
-    
-    if args.check:
-        nero(args)
-    elif len(sys.argv) == 1:
+
+    if len(sys.argv) == 1:
         parser.print_help()
     else:
         nero(args)

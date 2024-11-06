@@ -7,7 +7,7 @@
 It is designed to be a simple allow you to quickly and easily pull the latest version, specify version, or rollback if you need to.
 
 
-![screenshot](screen.png)
+![screenshot](https://raw.githubusercontent.com/regiellis/nero-cli/refs/heads/main/screen.png)
 
 ## Why
 

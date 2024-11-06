@@ -39,6 +39,7 @@ SOFTWARE.
 #   --download-dir DOWNLOAD_DIR
 #                         Specify the directory to save downloads
 #   --check               Display current configuration and check for updates
+#   --list-versions       List available versions of InvokeAI
 #   --update-config       Only update the configuration file with the current or specified version
 
 import os
@@ -52,9 +53,14 @@ import platform
 import time
 import urllib.request
 from pathlib import Path
-from datetime import datetime 
+from datetime import datetime
+from packaging import version
+
 
 from typing import Dict, Any, Optional, Tuple
+
+
+# TODO: TONS of refactoring needed here. This is a mess.
 
 
 # ANCHOR: ANSI color codes
@@ -84,7 +90,9 @@ CONFIG_DIR: Path = get_config_dir()
 CONFIG_FILE: Path = CONFIG_DIR / f"{SCRIPT_NAME}.json"
 MIN_PYTHON_VERSION: Tuple[int, int, int] = (3, 10, 1)
 MAX_PYTHON_VERSION: Tuple[int, int, int] = (3, 11, 9)
-TEMP_ENV: str = "nero-env" # TEMP_ENV is used for pyenv to create a temporary environment for installation
+TEMP_ENV: str = (
+    "nero-env"  # TEMP_ENV is used for pyenv to create a temporary environment for installation
+)
 
 
 # ANCHOR: Helper Functions
@@ -106,10 +114,14 @@ def check_command(command: str) -> bool:
 
 def run_command(command: str, dry_run: bool = False, wait: bool = False) -> None:
     if dry_run:
-        print(f"{Colors.WARNING}{'[DRY RUN] Would run and wait:' if wait else '[DRY RUN] Would run:'}{command}{Colors.ENDC}")
+        print(
+            f"{Colors.WARNING}{'[DRY RUN] Would run and wait:' if wait else '[DRY RUN] Would run:'}{command}{Colors.ENDC}"
+        )
     else:
-        print(f"{Colors.OKBLUE}{'Executing and waiting:' if wait else 'Executing:'}{command}{Colors.ENDC}")
-        
+        print(
+            f"{Colors.OKBLUE}{'Executing and waiting:' if wait else 'Executing:'}{command}{Colors.ENDC}"
+        )
+
         if not wait:
             subprocess.run(command, shell=True, check=True)
         else:
@@ -126,6 +138,64 @@ def get_latest_version() -> str:
     with urllib.request.urlopen(url) as response:
         data = json.loads(response.read().decode())
     return data["tag_name"].lstrip("v")
+
+
+def get_versions():
+    print_step("Fetching InvokeAI versions")
+    url = "https://api.github.com/repos/invoke-ai/InvokeAI/releases"
+    with urllib.request.urlopen(url) as response:
+        data = json.loads(response.read().decode())
+
+    versions = {"latest": None, "previous": [], "pre_release": []}
+
+    for release in data:
+        ver = release["tag_name"].lstrip("v")
+        if release["prerelease"]:
+            versions["pre_release"].append(ver)
+        elif not versions["latest"]:
+            versions["latest"] = ver
+        else:
+            versions["previous"].append(ver)
+
+    # Sort versions
+    versions["previous"].sort(key=lambda x: version.parse(x), reverse=True)
+    versions["pre_release"].sort(key=lambda x: version.parse(x), reverse=True)
+
+    return versions
+
+
+def display_versions() -> None:
+    versions = get_versions()
+
+    print(f"\n{Colors.BOLD}{Colors.UNDERLINE}InvokeAI Versions:{Colors.ENDC}")
+    print(f"{Colors.OKGREEN}Latest: {versions['latest']}{Colors.ENDC}")
+
+    print(f"\n{Colors.BOLD}Previous Releases:{Colors.ENDC}")
+    for ver in versions["previous"][:5]:  # Display top 5 previous versions
+        print(f"{Colors.OKBLUE}- {ver}{Colors.ENDC}")
+
+    print(f"\n{Colors.BOLD}Pre-release Versions:{Colors.ENDC}")
+    for ver in versions["pre_release"][:3]:  # Display top 3 pre-release versions
+        print(f"{Colors.WARNING}- {ver}{Colors.ENDC}")
+
+
+def download_version(version: str):
+    base_url = "https://github.com/invoke-ai/InvokeAI/releases/download"
+    filename = f"InvokeAI-installer-v{version}.zip"
+    url = f"{base_url}/v{version}/{filename}"
+
+    download_dir = Path.home() / "Downloads"  # Default to user's Downloads directory
+    full_path = download_dir / filename
+
+    try:
+        download_file(url, full_path)
+        print(
+            f"{Colors.OKGREEN}Successfully downloaded version {version} to {full_path}{Colors.ENDC}"
+        )
+    except Exception as e:
+        print(
+            f"{Colors.FAIL}Failed to download version {version}. Error: {str(e)}{Colors.ENDC}"
+        )
 
 
 def download_file(url: str, filename: Path, dry_run: bool = False) -> None:
@@ -194,23 +264,33 @@ def cleanup(zip_path: Optional[Path], keep: bool) -> None:
                 print(f"{Colors.OKGREEN}Successfully removed {zip_path}{Colors.ENDC}")
                 break
             except PermissionError:
-                print(f"{Colors.WARNING}Unable to remove file, retrying in 1 second...{Colors.ENDC}")
+                print(
+                    f"{Colors.WARNING}Unable to remove file, retrying in 1 second...{Colors.ENDC}"
+                )
                 time.sleep(1)
         else:
-            print(f"{Colors.FAIL}Failed to remove {zip_path} after multiple attempts{Colors.ENDC}")
-    
+            print(
+                f"{Colors.FAIL}Failed to remove {zip_path} after multiple attempts{Colors.ENDC}"
+            )
+
     temp_dir = Path(tempfile.gettempdir()) / "InvokeAI-Installer"
     if temp_dir.exists():
         for attempt in range(5):  # Try up to 5 times
             try:
                 shutil.rmtree(temp_dir)
-                print(f"{Colors.OKGREEN}Successfully removed temporary directory{Colors.ENDC}")
+                print(
+                    f"{Colors.OKGREEN}Successfully removed temporary directory{Colors.ENDC}"
+                )
                 break
             except PermissionError:
-                print(f"{Colors.WARNING}Unable to remove temporary directory, retrying in 1 second...{Colors.ENDC}")
+                print(
+                    f"{Colors.WARNING}Unable to remove temporary directory, retrying in 1 second...{Colors.ENDC}"
+                )
                 time.sleep(1)
         else:
-            print(f"{Colors.FAIL}Failed to remove temporary directory after multiple attempts{Colors.ENDC}")
+            print(
+                f"{Colors.FAIL}Failed to remove temporary directory after multiple attempts{Colors.ENDC}"
+            )
 
 
 def get_rollback_version(config: Dict[str, Any]) -> str:
@@ -332,6 +412,7 @@ def load_shell_environment():
                 "Warning: Failed to load shell environment. Using current environment."
             )
 
+
 # TODO: Fix pyenv activation, this is hacky and not working as expected (Removed for now)
 # def env_global_pyenv_fix() -> None:
 #     load_shell_environment()
@@ -380,7 +461,7 @@ def nero(args: argparse.Namespace) -> None:
                     f"{Colors.FAIL}Error: Python version {MIN_PYTHON_VERSION[0]}.{MIN_PYTHON_VERSION[1]}.{MIN_PYTHON_VERSION[2]} - {MAX_PYTHON_VERSION[0]}.{MAX_PYTHON_VERSION[1]}.{MAX_PYTHON_VERSION[2]} is required.{Colors.ENDC}"
                 )
                 print(
-                    "Please install an appropriate Python version 3.10.1 - 3.11.9 "# or use --use-pyenv to attempt installation with pyenv."
+                    "Please install an appropriate Python version 3.10.1 - 3.11.9 "  # or use --use-pyenv to attempt installation with pyenv."
                 )
             else:
                 print(
@@ -399,6 +480,10 @@ def nero(args: argparse.Namespace) -> None:
 
         if args.rollback:
             args.version = get_rollback_version(config)
+
+        if args.list_versions:
+            display_versions()
+            return
 
         if not args.version:
             action_result = check_for_updates(config.get("current_version", ""))
@@ -460,4 +545,3 @@ def nero(args: argparse.Namespace) -> None:
     finally:
         if zip_path is not None:
             cleanup(zip_path, args.keep)
-
