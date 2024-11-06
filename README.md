@@ -1,5 +1,11 @@
 # nero-cli
 
+> [!NOTE]
+> This project is not affiliated with InvokeAI or any of its affiliates. It is a simple tool that streamlines the process of downloading and running the official InvokeAI installer on your local machine.
+
+> [!WARNING]
+> It has been mentioned in the discord channel that the InvokeAI team is working on an official new installer, no ETA. Once that is released, and if it has update capabilities, this tool will be deprecated and sunsetted.
+
 
 ## Overview
 
