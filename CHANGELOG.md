@@ -2,6 +2,10 @@
 
 ## All notable changes to this project will be documented in this file
 
+### [1.0.4] - 2024-11-05
+
+- **Hotfix**: add packaging to requirements, skip a patch version to realign with pypi
+
 ### [1.0.2] - 2024-11-05
 
 - **Version List**: Added the ability to list all versions of the the installer on github
