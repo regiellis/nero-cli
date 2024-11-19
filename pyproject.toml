@@ -19,7 +19,8 @@ classifiers = [
    "Operating System :: OS Independent"
 ]
 dependencies = [
-    "packaging"
+    "packaging",
+    "inquirer"
 ]
 
 [tool.hatch.metadata]
