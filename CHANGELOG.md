@@ -2,7 +2,15 @@
 
 ## All notable changes to this project will be documented in this file
 
-### [1.0.4] - 2024-11-06
+### [1.0.7] - 2024-11-010
+
+- **Hotfix**: Fixed a bug where the list-version command could not handled releases with with tags that were not version numbers
+
+### [1.0.6] - 2024-11-010
+
+- **Feature**: Removed dependencies
+
+### [1.0.5] - 2024-11-06
 
 - **Hotfix**: add packaging to pyproject.toml
 
