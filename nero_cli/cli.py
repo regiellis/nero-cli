@@ -26,7 +26,6 @@ SOFTWARE.
 
 import argparse
 import json
-import logging
 import os
 import platform
 import shutil
@@ -131,7 +130,20 @@ def get_latest_version() -> str:
 
 def compare_versions(version1: str, version2: str) -> int:
     def normalize(v: str) -> Tuple[int, ...]:
-        return tuple(map(int, v.split(".")))
+        parts = v.split('.')
+        result = []
+        for part in parts:
+            if part.isdigit():
+                result.append(int(part))
+            else:
+                # Handle 'rc' versionss
+                if 'rc' in part:
+                    num, rc = part.split('rc')
+                    result.extend([int(num), -1, int(rc)])
+                else:
+                    result.append(-1)  # For other non-numeric parts
+        return tuple(result)
+    
     return (normalize(version1) > normalize(version2)) - (normalize(version1) < normalize(version2))
 
 
@@ -140,7 +152,20 @@ def get_versions():
     url = "https://api.github.com/repos/invoke-ai/InvokeAI/releases"
     with urllib.request.urlopen(url) as response:
         data = json.loads(response.read().decode())
+    
     versions = {"latest": None, "previous": [], "pre_release": []}
+    
+    def version_key(v):
+        parts = v.split('.')
+        result = []
+        for part in parts:
+            try:
+                result.append(int(part))
+            except ValueError:
+                # Handle non-numeric parts (like 'rc1')
+                result.append(-1)
+        return tuple(result)
+    
     for release in data:
         ver = release["tag_name"].lstrip("v")
         if release["prerelease"]:
@@ -149,9 +174,10 @@ def get_versions():
             versions["latest"] = ver
         else:
             versions["previous"].append(ver)
-
-    versions["previous"].sort(key=lambda x: tuple(map(int, x.split("."))), reverse=True)
-    versions["pre_release"].sort(key=lambda x: tuple(map(int, x.split("."))), reverse=True)
+    
+    versions["previous"].sort(key=version_key, reverse=True)
+    versions["pre_release"].sort(key=version_key, reverse=True)
+    
     return versions
 
 
